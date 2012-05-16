@@ -1,25 +1,36 @@
 Spring cache abstraction
-=====================
+=======
 
 Using caching to speed up web applications in a SOA environment.
---------------------
+-------
 
 At work, we have a Service Oriented Architecture wrapped around a mainframe legazy system.
 Basicly all our new web applications therefore communicates with web services. They are not flaming fast; typically they have a response time between 100ms and 1500ms.
 When creating webapplications based on data from these web services, we want to cache often used data in our webapp to speed things up.
 
-Not long ago we started using the fine Google Guava project http://code.google.com/p/guava-libraries/
+Not long ago we started using Google Guava project http://code.google.com/p/guava-libraries/ for our caching needs.
 This is a very nice cache system that can be plugged in to any class structure to cache method responses.
-From the outside, you call an interface function. But in the implementation class you use a builder to create a static cache for the class method.
-You delegate to Guava, and the cache will look up a key and return a value if it exists in the cache.
-If not, guava will call a specified method that gets the data, stores the result in the cache and returns it through the interface.
+From the outside, you call for instance an interface function. But in the implementation class you use a builder to create a static cache for the class method.
+You delegate to Guava, and the cache will look up a key and return a value if it exists in the cache, otherwise it will compute the actual method.
 
-A typical, simple implementation:
-CODE HERE
+A typical, simple implementation of a cache [borrowed from Guava source](http://code.google.com/p/guava-libraries/wiki/CachesExplained):
 
-Guava have all the functions you want in a cache: Time to live, max elements, eviction, invalidation, statistics and more.
+	LoadingCache<Key, Graph> graphs = CacheBuilder.newBuilder()
+		.maximumSize(10000)
+		.expireAfterWrite(10, TimeUnit.MINUTES)
+		.removalListener(MY_LISTENER)
+		.build(
+			new CacheLoader<Key, Graph>() {
+				public Graph load(Key key) throws AnyException {
+				return createExpensiveGraph(key);
+			}
+		});
+	}
 
-This is great and all. But what if I dont want to put all this code in my implementation class?
+Guava have all the functions you want in a cache: Time to live, max elements, eviction, invalidation, statistics, eviction events and much much more.
+However, implementations and use tend to be quite complex and new developers struggle to get the grasp of what is going on.
+
+
 
 Enter Spring Cache Abstraction
 =============
