@@ -89,10 +89,10 @@ The question is when does it change? When should we evict data from the cache? A
 We need functionality that Guava gives us. At this point, there are no ready made implementations of Guava with Spring Cache Abstraction that I have found. (Lets start implementing)
 Spring provides an implementation of [EHcache](http://ehcache.org/), a well proven cache system.
 
-What we need to make use of this is to replace our concurrentMapCache with a EH cache manager:
+What we need to make use of this is to replace our concurrentMapCache with a EHcache manager:
 CODE HERE!
 
-To configure the eh cache we use ehcache.xml on the classpath: (CHECK XML!! (name))
+To configure the EHcache we use ehcache.xml on the classpath: (CHECK XML!! (name))
 
 	<ehcache>
 		<diskStore path="java.io.tmpdir"/>
@@ -110,22 +110,28 @@ To configure the eh cache we use ehcache.xml on the classpath: (CHECK XML!! (nam
 			/>
 	</ehcache>
 
-There are of cource classes that can do this in our java code somehow, but some xml could be nice just to be able to easily configure our caches.
+There are of cource classes that somehow can do this in our java code, but some xml could be nice just to be able to easily configure our caches.
+_Remember to add EHcache jar on you classpath.._
 
+And that is is!
 
-Now, lets say that we need some security on this application. Our web application is actually a rest api using Jersey resources and on top of that, web have a single signon solution to controll
-user access to data. If we cache up web service responses, a user could easily fiddle with some params and get data that the user should not. This i a serious sequrity issue.@
-We need to make the cache smarter. What if we could control the cache keys and add data to the key the user cant control from web.
+Security
+------
+Now, lets say that we need some security on this application. Our web application is actually a rest api using Jersey resources.
+On top of everything, we have a single signon solution to control user access to data.
+If we cache up web service responses, a user could easily fiddle with some params and get data that the user should not. This is a serious sequrity issue!
+We need to make the cache smarter. What if we could control the cache keys and add data to the key the user cannot control from web.
 
 We need a custom key generator:
 CODE HERE
 
-The single signon solutions helps us here, because our the backend have unique identifiers on each customer. We just add this identifier to the key, and we have a secure cache.
-Notice that we have added an interface to the @Configuration class. This is to help Spring understand that the @Bean keyGenerator is the implementation that we want to use to generate defalut keys.
+The single signon solutions helps us here, because our the backend have unique identifiers on each customer. We just add this identifier to the key, and we have a secure cache because
+method parameters is no longer the only provider for key generation.
+Notice that we have added an interface to the __@Configuration__ class. This is to help Spring understand that the __@Bean keyGenerator__
+is the implementation that we want to use to generate default keys.
 
-
+---
 
 In this blog, web have shown how to add caching to a class in very uintrusive way. The example is quite simple,
-and for this application it works very well. Spring cache abstraction can be used in much more complicated ways. Check out Spring documentation.
-Remembering that Spring only abstract away the caching regime, and that spring does not handle the actual caching but leaves that to the proven implementation, I see no reason
-why not to implement this.
+and for this application it works very well. Spring cache abstraction can be used in much more complicated ways. Check out the [Spring documentation](http://static.springsource.org/spring/docs/3.1.0.M1/spring-framework-reference/html/cache.html).
+Remember that Spring only abstract away the caching engine, and that spring does not handle the actual caching but leaves that to the proven implementation.
