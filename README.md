@@ -28,12 +28,19 @@ Spring Cache Abstraction is new in Spring 3.1. It seems to be built on previous 
 Spring cache abstraction is just that, an abstraction. It is based on some very powerful annotations like @Cacheable, @CachPut, @CacheEvict and more.
 I will not show examples for all annontations in this blog, just the few that helped me replace Guava.
 
-Basicly what you do is annotate a method, or class, with @Cacheable("name_of_cache"). Spring will then proxy the class and any calls done to the methods
-will web cached in the named cache. Default key will be based on input to the method. Next time you call the method with the same parameters, the cached dat
+Basicly what you do is annotate a method, or class, with **@Cacheable("name_of_cache")**. Spring will then proxy the class and any calls done to the methods
+will be cached in the named cache. Default key will be based on input to the method. Next time you call the method with the same parameters, the cached dat
 will be returned. This is basicly all you need to do with the class to enable caching for this class or method.
 (This means of course that the method should be consistent in input/output. But there are ways around everything. Costly calculations could be an example.)
 
-CODE HERE
+	@Component
+	public class DataService(){
+
+		@Cacheable("name_of_cache")
+		public Document getDataFromService(Document request){
+			return myConnectorBean.getDataFromService(request);
+		}
+	}
 
 But to cache something, you need a cache!
 We use annotated spring beans to wire up the application.
@@ -46,7 +53,7 @@ CODE HERE
 And that is it! Your applications should now be able to cache the class methods.
 
 But wait! What if I dont want the cache to live for ever?
-An easy way could be to annotate a method with @CacheEvict("name_of_cache", allEvict=true) *** Check code ***
+An easy way could be to annotate a method with @CacheEvict("name_of_cache", allEntries=true)
 When this method is called, the cache will be emptied.
 
 In our web application, we typically want to cache the xml response from a slow web service. This data is quite static, but it CAN change.
