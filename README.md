@@ -119,7 +119,7 @@ Security
 ------
 Now, lets say that we need some security on this application. Our web application is actually a rest api using Jersey resources.
 On top of everything, we have a single signon solution to control user access to data.
-If we cache up web service responses, a user could easily fiddle with some params and get data that the user should not. This is a serious sequrity issue!
+If we cache up web service responses, a user could easily fiddle with some params and get data that the user should not. This is a serious security issue!
 We need to make the cache smarter. What if we could control the cache keys and add data to the key the user cannot control from web.
 
 We need a custom key generator:
