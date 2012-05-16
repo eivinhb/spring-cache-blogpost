@@ -81,19 +81,34 @@ And that is it! Your applications should now be able to cache the class methods.
 
 What if I dont want the cache to live for ever?
 ---------
-An easy way could be to annotate a method with @CacheEvict("name_of_cache", allEntries=true)
+An easy way could be to annotate a method with __@CacheEvict("name_of_cache", allEntries=true)__
 When this method is called, the cache will be emptied.
 
-In our web application, we typically want to cache the xml response from a slow web service. This data is quite static, but it CAN change.
+However, in our web application, we typically want to cache the xml response from a slow web service. This data is quite static, but it CAN change.
 The question is when does it change? When should we evict data from the cache? And what do we do when the concurrent map begins to eat up our memory?
 We need functionality that Guava gives us. At this point, there are no ready made implementations of Guava with Spring Cache Abstraction that I have found. (Lets start implementing)
-Spring provides an implementation of EHcache, a well proven cache.
+Spring provides an implementation of [EHcache](http://ehcache.org/), a well proven cache system.
 
 What we need to make use of this is to replace our concurrentMapCache with a EH cache manager:
 CODE HERE!
 
-To configure the eh cache we use this xml:
-CODE HERE
+To configure the eh cache we use ehcache.xml on the classpath: (CHECK XML!! (name))
+
+	<ehcache>
+		<diskStore path="java.io.tmpdir"/>
+		<defaultCache
+			name="name_of_cache"
+			maxEntriesLocalHeap="1000"
+			eternal="false"
+			timeToIdleSeconds="120"
+			timeToLiveSeconds="120"
+			overflowToDisk="true"
+			maxEntriesLocalDisk="10000000"
+			diskPersistent="false"
+			diskExpiryThreadIntervalSeconds="120"
+			memoryStoreEvictionPolicy="LRU"
+			/>
+	</ehcache>
 
 There are of cource classes that can do this in our java code somehow, but some xml could be nice just to be able to easily configure our caches.
 
