@@ -61,10 +61,21 @@ But to cache something, you need a cache engine!
 =======
 
 We use annotated spring beans to wire up the application. __(NO XML FTW)__
-In our __@Configuration__ class we added the __@EnableCaching__ annotation. __This is new in spring 3.1.1!__  
-We then create a __@Bean__ for CacheManager. This class is used by Spring Cache Abstraction to control the caching.
-We can choose to use a simple ConcurrentMapCache, with a name equal to the one we use in @Cacheable, for very simple caching:
-CODE HERE
+In our __@Configuration__ class we added the __@EnableCaching__ annotation. __This is new in [Spring 3.1.1](name_of_cache)!__  
+We then create a __@Bean__ for __CacheManager__. This class is used by Spring Cache Abstraction to control the caching.
+We can choose to use a simple __ConcurrentMapCache__, with a name equal to the one we use in __@Cacheable__, for very simple caching:
+
+	@Configuration
+	@EnableCaching
+	public class ServiceContext{
+
+		@Bean
+		public CacheManager cacheManager(){
+			CacheManager cacheManager = new SimpleCacheManager();
+         	cacheManager.addCaches(Arrays.asList(new ConcurrentMapCache("name_of_cache")));
+         	return cacheManager;
+		}
+	}
 
 And that is it! Your applications should now be able to cache the class methods.
 
