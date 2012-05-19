@@ -117,16 +117,31 @@ And that is is!
 
 Security
 ------
-Now, lets say that we need some security on this application. Our web application is actually a rest api using Jersey resources.
-On top of everything, we have a single signon solution to control user access to data.
 If we cache up web service responses, a user could easily fiddle with some params and get data that the user should not. This is a serious security issue!
-We need to make the cache smarter. What if we could control the cache keys and add data to the key the user cannot control from web.
+We need to make the cache smarter. What if we could control the cache keys and add data to the key the user cannot control.
+Our web application is actually a rest api using Jersey resources.
+On top of everything, we have a single signon solution to control user access to data.
 
-We need a custom key generator:
-CODE HERE
+We create a custom key generator:
+
+	public class SecureKeyGenerator implements KeyGenerator {
+
+		@Override
+		public Object generate(Object target, Method method, Object... params) {
+			Object keyPostFix = new DefaultKeyGenerator().generate(target, method, params);
+
+			if (target instanceof SecureKeyAware && ((SecureAware) target).getSecureKey() != null) {
+				return ((SecureKeyAware) target).getSecureKey() + keyPostFix;
+			} else {
+				throw new RuntimeExeption("Target for key generation is not secure key aware.");
+			}
+		}
+	}
+
 
 The single signon solutions helps us here, because our the backend have unique identifiers on each customer. We just add this identifier to the key, and we have a secure cache because
-method parameters is no longer the only provider for key generation.
+method parameters is no longer the only provider for key generation. Since the key is any subclass of object, we could create the
+key as a MyKeyImplementation if you need to do something with the keys in the cache.
 Notice that we have added an interface to the __@Configuration__ class. This is to help Spring understand that the __@Bean keyGenerator__
 is the implementation that we want to use to generate default keys.
 
