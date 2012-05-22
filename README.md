@@ -79,7 +79,7 @@ We can choose to use a simple __ConcurrentMapCache__, with a name equal to the o
 
 And that is it! Your applications should now be able to cache the class methods.
 
-What if I dont want the cache to live for ever?
+What if I don't want the cache to live for ever?
 ---------
 An easy way could be to annotate a method with __@CacheEvict("name_of_cache", allEntries=true)__
 When this method is called, the cache will be emptied.
@@ -90,9 +90,42 @@ We need functionality that Guava gives us. At this point, there are no ready mad
 Spring provides an implementation of [EHcache](http://ehcache.org/), a well proven cache system.
 
 What we need to make use of this is to replace our concurrentMapCache with a EHcache manager:
-CODE HERE!
 
-To configure the EHcache we use ehcache.xml on the classpath: (CHECK XML!! (name))
+	@Configuration
+	@EnableCaching
+	public class CoreServiceConfig implements CachingConfigurer {
+
+		@Bean
+		@Override
+		public CacheManager cacheManager(){
+
+			EhCacheManagerFactoryBean factory = new EhCacheManagerFactoryBean();
+			factory.setCacheManagerName("My cache manager");
+			factory.setConfigLocation(new ClassPathResource("ehcache.xml"));
+			factory.setShared(true);
+			try {
+				factory.afterPropertiesSet();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			EhCacheCacheManager managerEH = new EhCacheCacheManager();
+			managerEH.setCacheManager(factory.getObject());
+
+			return managerEH;
+		}
+
+		@Bean
+		@Override
+		public KeyGenerator keyGenerator(){
+			return new DefaultKeyGenerator();
+		}
+	}
+
+Notice that we have added an interface to the __@Configuration__ class. This is to help Spring understand that the __@Bean keyGenerator__
+is the implementation that we want to use to generate default keys.
+
+To configure the EHcache we use ehcache.xml on the classpath:
 
 	<ehcache>
 		<diskStore path="java.io.tmpdir"/>
@@ -117,12 +150,13 @@ And that is is!
 
 Security
 ------
-If we cache up web service responses, a user could easily fiddle with some params and get data that the user should not. This is a serious security issue!
+If we cache up web service responses that are unique to a spesific user or somehing like that,
+a user could easily fiddle with some params and get data that the user should not. This is a serious security issue!
 We need to make the cache smarter. What if we could control the cache keys and add data to the key the user cannot control.
 Our web application is actually a rest api using Jersey resources.
 On top of everything, we have a single signon solution to control user access to data.
 
-We create a custom key generator:
+We implement a custom key generator:
 
 	public class SecureKeyGenerator implements KeyGenerator {
 
@@ -138,15 +172,12 @@ We create a custom key generator:
 		}
 	}
 
-
 The single signon solutions helps us here, because our the backend have unique identifiers on each customer. We just add this identifier to the key, and we have a secure cache because
 method parameters is no longer the only provider for key generation. Since the key is any subclass of object, we could create the
-key as a MyKeyImplementation if you need to do something with the keys in the cache.
-Notice that we have added an interface to the __@Configuration__ class. This is to help Spring understand that the __@Bean keyGenerator__
-is the implementation that we want to use to generate default keys.
+key as a MyKeyImplementation if you need to do something smart with the keys in the cache.
 
 ---
 
-In this blog, web have shown how to add caching to a class in very uintrusive way. The example is quite simple,
+In this blog, web have shown how to add caching to a class or method in very uintrusive way. The example is quite simple,
 and for this application it works very well. Spring cache abstraction can be used in much more complicated ways. Check out the [Spring documentation](http://static.springsource.org/spring/docs/3.1.0.M1/spring-framework-reference/html/cache.html).
 Remember that Spring only abstract away the caching engine, and that spring does not handle the actual caching but leaves that to the proven implementation.
