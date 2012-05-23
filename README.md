@@ -10,28 +10,52 @@ Normally, the data is quite static and eventual consistency between web and main
 Google guava cache
 -------
 
-Not long ago we started using Google Guava project http://code.google.com/p/guava-libraries/ for our caching needs.
+Not long ago we started using [Google Guava project](http://code.google.com/p/guava-libraries/) for our simple caching needs.
 This is a very nice cache system that can be plugged in to any class structure to cache method responses.
 From the outside, you call, for instance, an interface function. But in the implementation class you use a builder to create a static cache for the class method.
-You delegate to Guava, and the cache will look up a key and return a value if it exists in the cache, otherwise it will compute the actual method.
+You delegate your actual call to Guava, and the cache will look up a key and return a value if it exists in the cache, otherwise it will compute the actual method.
 
-A typical, simple implementation of a cache [borrowed from Guava source](http://code.google.com/p/guava-libraries/wiki/CachesExplained):
+A typical, simple implementation of a cache :
 
-	LoadingCache<Key, Graph> graphs = CacheBuilder.newBuilder()
-		.maximumSize(10000)
-		.expireAfterWrite(10, TimeUnit.MINUTES)
-		.removalListener(MY_LISTENER)
-		.build(
-			new CacheLoader<Key, Graph>() {
-				public Graph load(Key key) throws AnyException {
-				return createExpensiveGraph(key);
+	@Component
+	public class DataService(){
+		private static Cache<CacheKey, Document> cache;
+		private static final int CACHE_SIZE = 10;
+		private static final int CACHE_EXPIRATION_IN_HOURS = 24;
+
+		@Autowire
+		private MyWebServiceBean myConnectorBean;
+
+		public Document getDataFromService(Document request){
+			if (cache == null) initializeCache();
+
+			Document response = null;
+			try {
+				CacheKey key = new CacheKey(request.hashCode(), request);
+				ettProduktResponse = cache.get(key);
+			} catch (ExecutionException e) {
+				throw new RuntimeException("Error fetching from cache", e);
 			}
-		});
+			return response;
+		}
+
+		private void initializeCache() {
+			cache = CacheBuilder.newBuilder()
+					.maximumSize(1000)
+					.expireAfterWrite(CACHE_EXPIRATION_IN_HOURS, TimeUnit.HOURS)
+					.build(new CacheLoader<CacheKey, Document>() {
+						@Override
+						public Document load(CacheKey cacheKey) throws Exception {
+							return myConnectorBean.getDataFromService(request)
+						}
+					});
+		}
 	}
 
 Guava have all the functions you want in a cache: Time to live, max elements, eviction, invalidation, statistics, eviction events and much much more.
 However, implementations tend to be quite complex and new developers struggle to get the grasp of what is going on when they see the code. It can also be difficult to
 write code that is unintrusive in the classes that need caching.
+The example above could probably be written much smarter that this, but the complexity of the code is quite obvious.
 
 
 Spring Cache Abstraction
@@ -50,6 +74,9 @@ _(This means of course that the method should be consistent in input/output. Cos
 
 	@Component
 	public class DataService(){
+
+		@Autowire
+		private MyWebServiceBean myConnectorBean;
 
 		@Cacheable("name-of-cache")
 		public Document getDataFromService(Document request){
@@ -89,7 +116,13 @@ The question is when does it change? When should we evict data from the cache? A
 We need functionality that Guava gives us. At this point, there are no ready made implementations of Guava with Spring Cache Abstraction that I have found. (Lets start implementing)
 Spring provides an implementation of [EHcache](http://ehcache.org/), a well proven cache system.
 
-What we need to make use of this is to replace our concurrentMapCache with a EHcache manager:
+What we need to make use of this is to replace our concurrentMapCache with a EHcache manager.
+Notice that we have added an interface to the __@Configuration__ class. This is to help Spring understand that the __@Bean keyGenerator__
+is the implementation that we want to use to generate default keys.
+
+The KeyGenerator is an interface that take the actual object that is doing caching, the actual method that is being called and all parameters to that method as input.
+Based on that input, it generates a key for the cache and returns it. The DefaultKeyGenerator that is used above creates a hashcode as key. This should work very good
+on methods that is consistent in input and output.
 
 	@Configuration
 	@EnableCaching
@@ -106,7 +139,7 @@ What we need to make use of this is to replace our concurrentMapCache with a EHc
 			try {
 				factory.afterPropertiesSet();
 			} catch (IOException e) {
-				e.printStackTrace();
+				throw new RuntimeException("Init cache crashed", e);
 			}
 
 			EhCacheCacheManager managerEH = new EhCacheCacheManager();
@@ -121,9 +154,6 @@ What we need to make use of this is to replace our concurrentMapCache with a EHc
 			return new DefaultKeyGenerator();
 		}
 	}
-
-Notice that we have added an interface to the __@Configuration__ class. This is to help Spring understand that the __@Bean keyGenerator__
-is the implementation that we want to use to generate default keys.
 
 To configure the EHcache we use ehcache.xml on the classpath:
 
@@ -146,7 +176,7 @@ To configure the EHcache we use ehcache.xml on the classpath:
 There are of cource classes that somehow can do this in our java code, but some xml could be nice just to be able to easily configure our caches.
 _Remember to add EHcache jar on you classpath.._
 
-And that is is!
+And that is it!
 
 Security
 ------
@@ -154,7 +184,7 @@ If we cache up web service responses that are unique to a spesific user or someh
 a user could easily fiddle with some params and get data that the user should not. This is a serious security issue!
 We need to make the cache smarter. What if we could control the cache keys and add data to the key the user cannot control.
 Our web application is actually a rest api using Jersey resources.
-On top of everything, we have a single signon solution to control user access to data.
+On top of everything, we have a single sign-on solution to control user access to data.
 
 We implement a custom key generator:
 
@@ -178,6 +208,6 @@ key as a MyKeyImplementation if you need to do something smart with the keys in 
 
 ---
 
-In this blog, web have shown how to add caching to a class or method in very uintrusive way. The example is quite simple,
+In this blog, web have shown how to add caching to a class or method in very uintrusive way with Spring. The example is quite simple,
 and for this application it works very well. Spring cache abstraction can be used in much more complicated ways. Check out the [Spring documentation](http://static.springsource.org/spring/docs/3.1.0.M1/spring-framework-reference/html/cache.html).
 Remember that Spring only abstract away the caching engine, and that spring does not handle the actual caching but leaves that to the proven implementation.
