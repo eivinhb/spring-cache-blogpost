@@ -1,4 +1,4 @@
-Spring cache abstraction
+Caching Spring > v 3.1.1
 =======
 
 At work, we have a Service Oriented Architecture wrapped around a mainframe legazy system.
